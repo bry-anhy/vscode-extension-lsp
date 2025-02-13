@@ -21,6 +21,21 @@
 	],
 	"main": "./client/out/extension",
 	"contributes": {
+		"commands": [
+			{
+			  "command": "extension.generateTestCode",
+			  "title": "Generate Test Code"
+			}
+		],
+		"menus": {
+			"editor/context": [
+			  {
+				"command": "extension.generateTestCode",
+				"when": "editorLangId == plaintext",
+				"group": "navigation"
+			  }
+			]			
+		},
 		"configuration": {
 			"type": "object",
 			"title": "Example configuration",

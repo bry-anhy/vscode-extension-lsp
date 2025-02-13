@@ -4,6 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as path from 'path';
+import * as vscode from 'vscode';
 import { workspace, ExtensionContext } from 'vscode';
 
 import {
@@ -16,6 +17,12 @@ import {
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
+	const disposable = vscode.commands.registerCommand('extension.generateTestCode', () => {
+		vscode.window.showInformationMessage('Hello from custom context menu! GENERATE TEST CODE');
+	  });
+	
+	  context.subscriptions.push(disposable);
+	  
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
