@@ -5,7 +5,7 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { workspace, ExtensionContext } from 'vscode';
+import { ExtensionContext } from 'vscode';
 
 import {
 	LanguageClient,
@@ -17,12 +17,13 @@ import {
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
+	console.log('LOG: REGISTER context custom context menu');
 	const disposable = vscode.commands.registerCommand('extension.generateTestCode', () => {
-		vscode.window.showInformationMessage('Hello from custom context menu! GENERATE TEST CODE');
-	  });
-	
-	  context.subscriptions.push(disposable);
-	  
+		vscode.window.showInformationMessage('Function detected! Custom action triggered!');
+	});
+
+	context.subscriptions.push(disposable);
+
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
@@ -40,12 +41,8 @@ export function activate(context: ExtensionContext) {
 
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
-		// Register the server for plain text documents
-		documentSelector: [{ scheme: 'file', language: 'plaintext' }],
-		synchronize: {
-			// Notify the server about file changes to '.clientrc files contained in the workspace
-			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
-		}
+		// Register the server for php documents
+		documentSelector: [{ scheme: 'file', language: 'php' }],
 	};
 
 	// Create the language client and start the client.
@@ -58,6 +55,29 @@ export function activate(context: ExtensionContext) {
 
 	// Start the client. This will also launch the server
 	client.start();
+
+	// Register the event ChangeTextEditorSelection
+	vscode.window.onDidChangeTextEditorSelection(async (event) => {
+		console.log('LOG: onDidChangeTextEditorSelection');
+
+		const editor = event.textEditor;
+		if (!editor || editor.document.languageId !== 'php') { return; }
+
+		const position = editor.selection.active;
+		const response = await client.sendRequest('custom/functionDetection', {
+			textDocument: { uri: editor.document.uri.toString() },
+			position: { line: position.line, character: position.character }
+		});
+		
+		console.log('LOG: response[vscode-lsp.function]', response['vscode-lsp.function']);
+		if (response && response['vscode-lsp.function']) {
+			vscode.commands.executeCommand('setContext', 'vscode-lsp.function', true);
+		} else {
+			vscode.commands.executeCommand('setContext', 'vscode-lsp.function', false);
+		}
+	});
+
+	
 }
 
 export function deactivate(): Thenable<void> | undefined {

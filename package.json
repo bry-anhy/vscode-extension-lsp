@@ -31,7 +31,7 @@
 			"editor/context": [
 			  {
 				"command": "extension.generateTestCode",
-				"when": "editorLangId == plaintext",
+				"when": "editorLangId == php && vscode-lsp.function",
 				"group": "navigation"
 			  }
 			]			
