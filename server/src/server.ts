@@ -9,7 +9,7 @@ import {
 	InitializeParams,
 	TextDocumentSyncKind,
 	InitializeResult,
-	TextDocumentPositionParams,
+	//TextDocumentPositionParams,
 } from 'vscode-languageserver/node';
 
 import {
@@ -27,43 +27,56 @@ connection.onInitialize((_params: InitializeParams) => {
 	const result: InitializeResult = {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
+			executeCommandProvider: {
+				commands: ['myLanguageServer.processFunction']
+			  }
 		}
 	};
 
 	return result;
 });
 
-// Xử lý khi user click vào code để kiểm tra function
-connection.onRequest('custom/functionDetection', (params: TextDocumentPositionParams) => {
-	const document = documents.get(params.textDocument.uri);
-	if (!document) { return null; }
+// Xử lý khi nhận được request từ client
+connection.onRequest("myLanguageServer.processFunction", (funcCode) => {
+	console.log("Received function code:", funcCode);
+	
+	// Xử lý function code (có thể phân tích AST, generate code, v.v.)
+	const generatedCode = `\n${funcCode}`;
+  
+	return generatedCode;
+  });
 
-	const text = document.getText();
-	const lines = text.split('\n');
-	const lineText = lines[params.position.line];
-	//console.log('LOG: lineText', lineText);
+// // Xử lý khi user click vào code để kiểm tra function
+// connection.onRequest('custom/functionDetection', (params: TextDocumentPositionParams) => {
+// 	const document = documents.get(params.textDocument.uri);
+// 	if (!document) { return null; }
 
-	// Kiểm tra xem có phải function không
-	if (/function\s+\w+\s*\(/.test(lineText)) {
-		return { 'vscode-lsp.function': true };
-	}
+// 	const text = document.getText();
+// 	const lines = text.split('\n');
+// 	const lineText = lines[params.position.line];
+// 	//console.log('LOG: lineText', lineText);
 
-	return { 'vscode-lsp.function': false };
-});
+// 	// Kiểm tra xem có phải function không
+// 	if (/function\s+\w+\s*\(/.test(lineText)) {
+// 		return { 'vscode-lsp.function': true };
+// 	}
 
-connection.onRequest("myLanguageServer.getFunctionBlock", (code: string) => {
-	// Regex tìm function block trong PHP
-	const functionRegex = /function\s+\w+\s*\(.*\)\s*\{([\s\S]*?)\}/;
-	console.log('LOG: code', code);
-	const match = functionRegex.exec(code);
-	console.log('LOG: match', match);
+// 	return { 'vscode-lsp.function': false };
+// });
 
-	if (match && match[1]) {
-		return match[1].trim();
-	}
+// connection.onRequest("myLanguageServer.getFunctionBlock", (code: string) => {
+// 	// Regex tìm function block trong PHP
+// 	const functionRegex = /function\s+\w+\s*\(.*\)\s*\{([\s\S]*?)\}/;
+// 	console.log('LOG: code', code);
+// 	const match = functionRegex.exec(code);
+// 	console.log('LOG: match', match);
 
-	return "No function found!";
-});
+// 	if (match && match[1]) {
+// 		return match[1].trim();
+// 	}
+
+// 	return "No function found!";
+// });
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
