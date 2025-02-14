@@ -41,7 +41,7 @@ connection.onRequest('custom/functionDetection', (params: TextDocumentPositionPa
 	const text = document.getText();
 	const lines = text.split('\n');
 	const lineText = lines[params.position.line];
-	console.log('LOG: lineText', lineText);
+	//console.log('LOG: lineText', lineText);
 
 	// Kiểm tra xem có phải function không
 	if (/function\s+\w+\s*\(/.test(lineText)) {
@@ -49,6 +49,20 @@ connection.onRequest('custom/functionDetection', (params: TextDocumentPositionPa
 	}
 
 	return { 'vscode-lsp.function': false };
+});
+
+connection.onRequest("myLanguageServer.getFunctionBlock", (code: string) => {
+	// Regex tìm function block trong PHP
+	const functionRegex = /function\s+\w+\s*\(.*\)\s*\{([\s\S]*?)\}/;
+	console.log('LOG: code', code);
+	const match = functionRegex.exec(code);
+	console.log('LOG: match', match);
+
+	if (match && match[1]) {
+		return match[1].trim();
+	}
+
+	return "No function found!";
 });
 
 // Make the text document manager listen on the connection

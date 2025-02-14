@@ -18,11 +18,30 @@ let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
 	console.log('LOG: REGISTER context custom context menu');
-	const disposable = vscode.commands.registerCommand('extension.generateTestCode', () => {
-		vscode.window.showInformationMessage('Function detected! Custom action triggered!');
+	const disposable = vscode.commands.registerCommand("extension.generateTestCode", async () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			vscode.window.showErrorMessage("No active text editor");
+			return;
+		}
+
+		const document = editor.document;
+		const selection = editor.selection;
+		const text = document.getText(selection);
+		console.log('LOG: text', text);
+
+		// Gửi yêu cầu tới Language Server để xử lý
+		const result = await client.sendRequest<string>("myLanguageServer.getFunctionBlock", text);
+
+		if (result) {
+			vscode.window.showInformationMessage("Generated Code:\n" + result);
+		} else {
+			vscode.window.showErrorMessage("No function block found!");
+		}
 	});
 
 	context.subscriptions.push(disposable);
+
 
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(
@@ -68,8 +87,8 @@ export function activate(context: ExtensionContext) {
 			textDocument: { uri: editor.document.uri.toString() },
 			position: { line: position.line, character: position.character }
 		});
-		
-		console.log('LOG: response[vscode-lsp.function]', response['vscode-lsp.function']);
+
+		//console.log('LOG: response[vscode-lsp.function]', response['vscode-lsp.function']);
 		if (response && response['vscode-lsp.function']) {
 			vscode.commands.executeCommand('setContext', 'vscode-lsp.function', true);
 		} else {
@@ -77,7 +96,7 @@ export function activate(context: ExtensionContext) {
 		}
 	});
 
-	
+
 }
 
 export function deactivate(): Thenable<void> | undefined {
