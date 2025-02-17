@@ -5,6 +5,7 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { exec } from 'child_process';
 import { ExtensionContext } from 'vscode';
 
 import {
@@ -20,27 +21,52 @@ export function activate(context: ExtensionContext) {
 	console.log('LOG: REGISTER context custom context menu');
 	const disposable = vscode.commands.registerCommand("extension.generateTestCode", async () => {
 		const editor = vscode.window.activeTextEditor;
-		if (!editor) {
-			vscode.window.showErrorMessage("No active editor!");
-			return;
-		}
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor!');
+            return;
+        }
 
-		const document = editor.document;
-		const cursorPosition = editor.selection.active; // Vị trí con trỏ
-		console.log('LOG: cursorPosition', cursorPosition);
+        const phpCode = editor.document.getText();
+        const extensionPath = context.extensionPath;
+        const phpScriptPath = path.join(extensionPath, 'scripts', 'parse.php');
 
-		// Tìm function chứa con trỏ
-		const functionText = getFunctionAtCursor(document, cursorPosition);
+        // Gọi script PHP với thư viện php-parser đã đóng gói
+        exec(`php "${phpScriptPath}"`, { timeout: 5000 }, (error, stdout, stderr) => {
+            if (error) {
+                vscode.window.showErrorMessage(`Error: ${stderr}`);
+                return;
+            }
 
-		if (!functionText) {
-			vscode.window.showErrorMessage("No function found!");
-			return;
-		}
+            const panel = vscode.window.createWebviewPanel(
+                'phpAstViewer',
+                'PHP AST Viewer',
+                vscode.ViewColumn.Two,
+                {}
+            );
+            panel.webview.html = `<pre>${stdout.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
+        }).stdin?.end(phpCode);
+		// const editor = vscode.window.activeTextEditor;
+		// if (!editor) {
+		// 	vscode.window.showErrorMessage("No active editor!");
+		// 	return;
+		// }
 
-		// Gửi nội dung function lên server LSP
-		const result = await client.sendRequest("myLanguageServer.processFunction", functionText);
+		// const document = editor.document;
+		// const cursorPosition = editor.selection.active; // Vị trí con trỏ
+		// console.log('LOG: cursorPosition', cursorPosition);
 
-		vscode.window.showInformationMessage(`${result}`);
+		// // Tìm function chứa con trỏ
+		// const functionText = getFunctionAtCursor(document, cursorPosition);
+
+		// if (!functionText) {
+		// 	vscode.window.showErrorMessage("No function found!");
+		// 	return;
+		// }
+
+		// // Gửi nội dung function lên server LSP
+		// const result = await client.sendRequest("myLanguageServer.processFunction", functionText);
+
+		// vscode.window.showInformationMessage(`${result}`);
 	});
 
 	context.subscriptions.push(disposable);
@@ -89,41 +115,41 @@ export function deactivate(): Thenable<void> | undefined {
 /**
  * Tìm function chứa con trỏ
  */
-function getFunctionAtCursor(document: vscode.TextDocument, position: vscode.Position): string | null {
-	const text = document.getText();
-	//console.log('LOG: text', text);
-	const lines = text.split("\n");
+// function getFunctionAtCursor(document: vscode.TextDocument, position: vscode.Position): string | null {
+// 	const text = document.getText();
+// 	//console.log('LOG: text', text);
+// 	const lines = text.split("\n");
 
-	let functionStart = -1;
-	let functionEnd = -1;
-	let bracketCount = 0;
+// 	let functionStart = -1;
+// 	let functionEnd = -1;
+// 	let bracketCount = 0;
 
-	console.log('LOG: position', position.line);
-	//const functionRegex = /^\s*(public|protected|private|static)?\s*function\s+\w+\s*\(.*\)\s*(:\s*\w+)?\s*{?$/;	
-	for (let i = position.line; i >= 0; i--) {
-		console.log('LOG: lines[i]', lines[i]);
-		if (/^\s*(public|protected|private|static)?\s*function\s+\w+\s*\(/.test(lines[i])) {
-		//if (functionRegex.test(lines[i])) {
-			functionStart = i;
-			break;
-		}
-	}
+// 	console.log('LOG: position', position.line);
+// 	//const functionRegex = /^\s*(public|protected|private|static)?\s*function\s+\w+\s*\(.*\)\s*(:\s*\w+)?\s*{?$/;	
+// 	for (let i = position.line; i >= 0; i--) {
+// 		console.log('LOG: lines[i]', lines[i]);
+// 		if (/^\s*(public|protected|private|static)?\s*function\s+\w+\s*\(/.test(lines[i])) {
+// 		//if (functionRegex.test(lines[i])) {
+// 			functionStart = i;
+// 			break;
+// 		}
+// 	}
 
-	if (functionStart === -1) { return null; }
+// 	if (functionStart === -1) { return null; }
 
-	for (let i = functionStart; i < lines.length; i++) {
-		bracketCount += (lines[i].match(/{/g) || []).length;
-		bracketCount -= (lines[i].match(/}/g) || []).length;
+// 	for (let i = functionStart; i < lines.length; i++) {
+// 		bracketCount += (lines[i].match(/{/g) || []).length;
+// 		bracketCount -= (lines[i].match(/}/g) || []).length;
 
-		if (bracketCount === 0) {
-			functionEnd = i;
-			break;
-		}
-	}
+// 		if (bracketCount === 0) {
+// 			functionEnd = i;
+// 			break;
+// 		}
+// 	}
 
-	console.log('LOG: functionStart', functionStart);
-	console.log('LOG: functionEnd', functionEnd);
-	if (functionEnd === -1) { return null; }
+// 	console.log('LOG: functionStart', functionStart);
+// 	console.log('LOG: functionEnd', functionEnd);
+// 	if (functionEnd === -1) { return null; }
 
-	return lines.slice(functionStart, functionEnd + 1).join("\n");
-}
+// 	return lines.slice(functionStart, functionEnd + 1).join("\n");
+// }
