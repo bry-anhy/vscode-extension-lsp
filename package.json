@@ -17,24 +17,27 @@
 		"vscode": "^1.75.0"
 	},
 	"activationEvents": [
-		"onLanguage:plaintext"
+		"onLanguage:plaintext",
+		"onLanguage:php",
+		"onLanguage:javascript",
+		"onLanguage:typescript"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
 		"commands": [
 			{
-			  "command": "extension.generateTestCode",
-			  "title": "Generate Test Code"
+				"command": "extension.generateTestCode",
+				"title": "Generate Testcode"
 			}
 		],
 		"menus": {
 			"editor/context": [
-			  {
-				"command": "extension.generateTestCode",
-				"when": "editorLangId == php",
-				"group": "navigation"
-			  }
-			]			
+				{
+					"command": "extension.generateTestCode",
+					"when": "editorTextFocus",
+					"group": "navigation"
+				}
+			]
 		},
 		"configuration": {
 			"type": "object",
@@ -58,7 +61,36 @@
 					"description": "Traces the communication between VS Code and the language server."
 				}
 			}
-		}
+		},
+		"languages": [
+			{
+				"id": "php",
+				"extensions": [
+					".php"
+				],
+				"aliases": [
+					"PHP"
+				]
+			},
+			{
+				"id": "javascript",
+				"extensions": [
+					".js"
+				],
+				"aliases": [
+					"JavaScript"
+				]
+			},
+			{
+				"id": "typescript",
+				"extensions": [
+					".ts"
+				],
+				"aliases": [
+					"TypeScript"
+				]
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
@@ -77,5 +109,8 @@
 		"mocha": "^10.3.0",
 		"typescript": "^5.7.2",
 		"typescript-eslint": "^8.16.0"
+	},
+	"dependencies": {
+		"php-parser": "^3.2.2"
 	}
 }

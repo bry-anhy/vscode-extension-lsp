@@ -2,5 +2,3 @@ out
 node_modules
 client/server
 .vscode-test
-client/tsconfig.tsbuildinfo
-server/tsconfig.tsbuildinfo
