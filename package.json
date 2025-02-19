@@ -24,6 +24,14 @@
 	],
 	"main": "./client/out/extension",
 	"contributes": {
+		"views": {
+			"explorer": [
+				{
+					"id": "projectExplorer",
+					"name": "My Tree View"
+				}
+			]
+		},
 		"commands": [
 			{
 				"command": "extension.generateTestCode",

@@ -136,7 +136,22 @@ interface PhpAstNode {
   }
   
 
-export function activate(context: ExtensionContext) {
+export function activate(context: ExtensionContext) {		
+	const workspaceRoot = vscode.workspace.rootPath;
+   if (workspaceRoot) {
+       const treeDataProvider = new ProjectTreeDataProvider(workspaceRoot);
+       vscode.window.registerTreeDataProvider('projectExplorer', treeDataProvider);
+
+
+	//    const srcPattern = new vscode.RelativePattern(workspaceRoot, 'src/**/*');
+	//    //vscode.workspace.findFiles('**/*').then(files => {
+	// 	vscode.workspace.findFiles(srcPattern).then(files => {
+	// 	files.forEach(file => {
+	// 		console.log(file.fsPath);
+	// 	});
+	// });
+   }   
+
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
@@ -257,3 +272,81 @@ export function deactivate(): Thenable<void> | undefined {
 	}
 	return client.stop();
 }
+
+class FileNode extends vscode.TreeItem {
+	constructor(public readonly uri: vscode.Uri) {
+		super(uri, vscode.TreeItemCollapsibleState.None);
+		this.resourceUri = uri;
+	}
+ }
+
+ class FolderNode extends vscode.TreeItem {
+	constructor(public readonly uri: vscode.Uri, public readonly children: FileNode[]) {
+		super(uri, vscode.TreeItemCollapsibleState.Collapsed);
+		this.resourceUri = uri;
+	}
+ }
+
+ class ProjectTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+	constructor(private workspaceRoot: string) {}
+ 
+	getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
+		//console.log('getTreeItem: ',element);
+		return element;
+	}
+ 
+	getChildren(element?: vscode.TreeItem): Thenable<vscode.TreeItem[]> {
+		if (!this.workspaceRoot) {
+			vscode.window.showInformationMessage('No workspace folder found');
+			console.log('No workspace folder found');
+			return Promise.resolve([]);
+		}
+ 
+		if (element) {
+			if (element instanceof FolderNode) {
+				console.log('getFilesAndFolders1: ',element.children);
+				return Promise.resolve(element.children);
+			}
+			return Promise.resolve([]);
+		} else {
+			console.log('getFilesAndFolders2: ',this.workspaceRoot);
+			return this.getFilesAndFolders(this.workspaceRoot);
+		}
+	}
+ 
+	private async getFilesAndFolders(dir: string): Promise<vscode.TreeItem[]> {
+		console.log('dir:', dir);
+		//const files = await vscode.workspace.findFiles(new vscode.RelativePattern(dir, '*'));
+		//const pattern = new vscode.RelativePattern(dir, '**/*');
+		const srcPattern = new vscode.RelativePattern(this.workspaceRoot, 'src/**/*');
+		const files = await vscode.workspace.findFiles(srcPattern);
+		console.log('getFilesAndFolders - files: ',files);
+		const folders = new Map<string, FileNode[]>();
+ 
+		files.forEach(file => {
+			console.log('getFilesAndFolders3: ',file.fsPath);
+			const relativePath = path.relative(this.workspaceRoot, file.fsPath);
+			console.log('relativePath: ',relativePath);
+			const parts = relativePath.split(path.sep);
+			console.log('path.sep: ',path.sep);
+			console.log('parts: ',parts);
+			if (parts.length > 1) {
+				const folder = parts[0];
+				if (!folders.has(folder)) {
+					console.log('getFilesAndFolders4: ',folder);
+					folders.set(folder, []);
+				}
+				console.log('getFilesAndFolders5: ',file);
+				folders.get(folder)!.push(new FileNode(file));
+			}
+		});
+ 
+		const folderNodes = Array.from(folders, ([folder, children]) => {
+			const folderUri = vscode.Uri.file(path.join(this.workspaceRoot, folder));
+			console.log('getFilesAndFolders6: ',folderUri);
+			return new FolderNode(folderUri, children);
+		});
+ 
+		return folderNodes;
+	}
+ }
