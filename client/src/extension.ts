@@ -77,19 +77,39 @@ interface PhpAstNode {
 	return found;
   }
   
-  // Thu thập tên các function được gọi bên trong node (giả sử node call có kind là 'call')
   function collectCalledFunctionNames(node: unknown): Set<string> {
 	const names = new Set<string>();
+  
 	function traverse(n: unknown): void {
 	  if (!isPhpAstNode(n)) {return;}
-	  // Giả sử các node gọi hàm có kind 'call' và bên trong thuộc tính 'what' chứa tên hàm
-	  console.log('collectCall: ',n.kind);
-	  if (n.kind === 'call' && n.what && isPhpAstNode(n.what)) {
-		const funcName = getFunctionName(n.what);
-		if (funcName) {
-		  names.add(funcName);
+  
+	  if (n.kind === 'call' && n.what) {
+		// Trường hợp gọi hàm trực tiếp, ví dụ: sayHello()
+		if (isPhpAstNode(n.what) && n.what.kind === 'identifier') {
+		  const funcName = getFunctionName(n.what);
+		  if (funcName) {
+			names.add(funcName);
+		  }
+		}
+		// Trường hợp gọi hàm qua biến, ví dụ: $func()
+		else if (isPhpAstNode(n.what) && n.what.kind === 'variable') {
+		  // Ở đây n.what.name có thể chứa tên biến, ví dụ: "func"
+		  const varName = n.what.name;
+		  // Thông báo hoặc xử lý theo ý bạn vì giá trị thực của biến có thể không rõ
+		  names.add(`[dynamic call via variable: ${varName}]`);
+		}
+		// Các trường hợp khác nếu có (ví dụ: gọi method thông qua $this->)
+		else if (isPhpAstNode(n.what) && n.what.kind === 'propertylookup') {
+		  const offset = n.what.offset;
+		  if (offset && typeof offset === 'object' && 'name' in offset) {
+			const methodName = (offset as { name: string }).name;
+			if (methodName) {
+			  names.add(methodName);
+			}
+		  }
 		}
 	  }
+  
 	  for (const key in n) {
 		if (Object.prototype.hasOwnProperty.call(n, key)) {
 		  const child = n[key];
