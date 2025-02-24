@@ -222,14 +222,14 @@ export function activate(context: ExtensionContext) {
 				const endPos = new vscode.Position(selectedFunction.loc.end.line - 1, selectedFunction.loc.end.column);
 				const functionText = document.getText(new vscode.Range(startPos, endPos));
 
-				let message = `Selected function:\n${functionText}\n\n`;
+				let message = `<h3>Selected function:</h3><p>${functionText}</p>`;
 
 				// Thu thập tên các function được gọi bên trong function đã chọn
 				const calledNames = collectCalledFunctionNames(selectedFunction);
 				if (calledNames.size === 0) {
-					message += 'No related function calls found.';
+					message += '<h3>No related function calls found.</h3>';
 				} else {
-					message += 'Related function definitions found:\n';
+					message += '<h3>Related function definitions found:</h3>';
 					// Với mỗi tên function, tìm định nghĩa trong AST
 					calledNames.forEach(name => {
 						const defs = findFunctionDefinitions(ast, name);
@@ -238,17 +238,29 @@ export function activate(context: ExtensionContext) {
 								if (def.loc) {
 									const defStart = new vscode.Position(def.loc.start.line - 1, def.loc.start.column);
 									const defEnd = new vscode.Position(def.loc.end.line - 1, def.loc.end.column);
-									const defText = document.getText(new vscode.Range(defStart, defEnd));
-									message += `\nFunction ${name}:\n${defText}\n`;
+									const defText = document.getText(new vscode.Range(defStart, defEnd));									
+									message += `<p>${defText}</p>`;
 								}
 							});
 						} else {
-							message += `\nFunction ${name}: definition not found.`;
+							message += `<p>Function ${name}: definition not found.</p>`;
 						}
 					});
 				}
+				
+				const panel = vscode.window.createWebviewPanel(
+					"infoPanel",
+					"Thông Báo",
+					vscode.ViewColumn.One,
+					{}
+				);
 
-				vscode.window.showInformationMessage(message);
+				panel.webview.html = `
+			<html>
+				<body>
+					${message}
+				</body>
+			</html>`;
 			} catch (err) {
 				vscode.window.showErrorMessage(`Error parsing PHP: ${err}`);
 			}
